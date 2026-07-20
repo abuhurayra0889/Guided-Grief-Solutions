@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/ggs/AppShell";
 import { ThumbsUp, ThumbsDown, ArrowLeft } from "lucide-react";
-import { useStore } from "@/lib/ggs/mockStore";
+import { useKbArticle, usePublishedKbArticles } from "@/lib/ggs/queries";
 
 export const Route = createFileRoute("/knowledge-base/$id")({
   head: () => ({ meta: [{ title: "Article - GGS" }] }),
@@ -12,12 +12,14 @@ export const Route = createFileRoute("/knowledge-base/$id")({
 function Article() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const article = useStore((s) => s.kbArticles.find((a) => a.id === id));
-  const related = useStore((s) =>
-    article ? s.kbArticles.filter((a) => a.id !== id && a.category === article.category).slice(0, 4) : []
-  );
+  const { data: article, isLoading } = useKbArticle(id);
+  const { data: allArticles = [] } = usePublishedKbArticles();
+  const related = article
+    ? allArticles.filter((a) => a.id !== id && a.category === article.category).slice(0, 4)
+    : [];
   const [vote, setVote] = useState<null | "up" | "down">(null);
 
+  if (isLoading) return <AppShell><p className="text-muted-foreground">Loading…</p></AppShell>;
   if (!article) return <AppShell><p className="text-muted-foreground">Article not found.</p></AppShell>;
 
   return (

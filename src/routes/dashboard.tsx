@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/ggs/useAuth";
+import { useAuth, profileNeedsOnboarding } from "@/lib/ggs/useAuth";
 import { AppShell } from "@/components/ggs/AppShell";
 import { ArrowRight, Check, MessageCircle, Sparkles } from "lucide-react";
-import { store, useStore } from "@/lib/ggs/mockStore";
+import { useActionItemMutations, useJournalEntries, useUserActionItems } from "@/lib/ggs/queries";
 import { todayNudge } from "@/lib/ggs/agents";
 
 export const Route = createFileRoute("/dashboard")({
@@ -21,29 +21,39 @@ const STAGE_LABELS: Record<string, string> = {
 function Dashboard() {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
-  const actions = useStore((s) => s.actionItems);
-  const entries = useStore((s) => s.journalEntries.slice(0, 2));
+  const { data: actions = [] } = useUserActionItems(user?.id);
+  const { data: entries = [] } = useJournalEntries(user?.id);
+  const { toggle } = useActionItemMutations(user?.id);
   const [quickQ, setQuickQ] = useState("");
 
-  useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [user, loading, navigate]);
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/auth" });
+    else if (!loading && user && profileNeedsOnboarding(profile)) navigate({ to: "/onboarding" });
+  }, [user, profile, loading, navigate]);
 
-  if (!profile) return <AppShell><p className="text-muted-foreground">Loading…</p></AppShell>;
+  if (loading || !profile) return <AppShell><p className="text-muted-foreground">Loading…</p></AppShell>;
 
   const top = actions.filter((a) => a.status !== "done").slice(0, 4).concat(actions.filter((a) => a.status === "done").slice(0, 1));
   const done = actions.filter((a) => a.status === "done").length;
   const pct = actions.length ? Math.round((done / actions.length) * 100) : 0;
-  const days = Math.max(0, Math.floor((Date.now() - new Date(profile.loss_date).getTime()) / 86400000));
+  const days = profile.loss_date
+    ? Math.max(0, Math.floor((Date.now() - new Date(profile.loss_date).getTime()) / 86400000))
+    : 0;
 
   return (
     <AppShell>
       <div className="space-y-8">
         <div className="bg-card border border-border rounded-2xl p-7">
           <p className="text-sm text-muted-foreground">Welcome back,</p>
-          <h1 className="font-display text-4xl mt-1">{profile.full_name.split(" ")[0]}.</h1>
+          <h1 className="font-display text-4xl mt-1">{profile.full_name?.split(" ")[0] || "Friend"}.</h1>
           <div className="mt-5 flex flex-wrap items-center gap-2 text-xs">
             <span className="px-3 py-1 rounded-full bg-secondary text-foreground">{days} days since</span>
-            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary-dark">{STAGE_LABELS[profile.grief_stage]}</span>
-            <span className="px-3 py-1 rounded-full bg-secondary text-muted-foreground">{profile.state_code}</span>
+            {profile.grief_stage && (
+              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary-dark">{STAGE_LABELS[profile.grief_stage]}</span>
+            )}
+            {profile.state_code && (
+              <span className="px-3 py-1 rounded-full bg-secondary text-muted-foreground">{profile.state_code}</span>
+            )}
           </div>
           <div className="mt-6">
             <div className="flex items-center justify-between text-sm mb-1.5">
@@ -73,22 +83,28 @@ function Dashboard() {
               <h2 className="font-display text-2xl">Your next steps</h2>
               <span className="text-xs text-muted-foreground">{done}/{actions.length}</span>
             </div>
-            <ul className="space-y-3">
-              {top.map((a) => (
-                <li key={a.id} className="flex items-start gap-3">
-                  <button onClick={() => store.toggleAction(a.id)}
-                    className={`mt-0.5 h-5 w-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                      a.status === "done" ? "bg-primary border-primary text-primary-foreground" : "border-border hover:border-primary"
-                    }`}>
-                    {a.status === "done" && <Check className="h-3.5 w-3.5" />}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${a.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>{a.title}</p>
-                    <span className="text-[10px] uppercase tracking-wider text-primary/70">{a.category}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {actions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Complete onboarding to get your personalized checklist.</p>
+            ) : (
+              <ul className="space-y-3">
+                {top.map((a) => (
+                  <li key={a.id} className="flex items-start gap-3">
+                    <button
+                      onClick={() => toggle.mutate({ id: a.id, status: a.status })}
+                      className={`mt-0.5 h-5 w-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        a.status === "done" ? "bg-primary border-primary text-primary-foreground" : "border-border hover:border-primary"
+                      }`}
+                    >
+                      {a.status === "done" && <Check className="h-3.5 w-3.5" />}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${a.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>{a.title}</p>
+                      <span className="text-[10px] uppercase tracking-wider text-primary/70">{a.category}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="bg-card border border-border rounded-2xl p-7">
@@ -96,14 +112,18 @@ function Dashboard() {
               <h2 className="font-display text-2xl">Recent journal</h2>
               <Link to="/journal" className="text-sm text-primary hover:underline">Write today's entry →</Link>
             </div>
-            <ul className="space-y-3">
-              {entries.map((e) => (
-                <li key={e.id} className="border-l-2 border-accent pl-3">
-                  <p className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleDateString()} · {e.mood}</p>
-                  <p className="text-sm text-foreground">{e.content.slice(0, 90)}{e.content.length > 90 ? "…" : ""}</p>
-                </li>
-              ))}
-            </ul>
+            {entries.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No entries yet. Your journal is private to you.</p>
+            ) : (
+              <ul className="space-y-3">
+                {entries.slice(0, 2).map((e) => (
+                  <li key={e.id} className="border-l-2 border-accent pl-3">
+                    <p className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleDateString()} · {e.mood}</p>
+                    <p className="text-sm text-foreground">{e.content?.slice(0, 90)}{(e.content?.length ?? 0) > 90 ? "…" : ""}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 

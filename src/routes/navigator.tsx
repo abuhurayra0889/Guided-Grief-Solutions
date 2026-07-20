@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/ggs/AppShell";
 import { Send, Sparkles, Search, BookOpen, ChevronDown, ChevronRight } from "lucide-react";
-import { useStore } from "@/lib/ggs/mockStore";
+import { useAuth } from "@/lib/ggs/useAuth";
+import { useNavigatorSession, useNavigatorSessionMutations, usePublishedKbArticles } from "@/lib/ggs/queries";
+import type { NavigatorMessage } from "@/lib/ggs/db";
 
 type SearchParams = { q?: string };
 
@@ -15,14 +17,7 @@ export const Route = createFileRoute("/navigator")({
 type ThinkingStep = { type: "search" | "lookup" | "compose"; label: string };
 type Citation = { id: string; title: string };
 
-type Msg = {
-  role: "user" | "agent";
-  content: string;
-  ts: number;
-  thinking?: ThinkingStep[];
-  citations?: Citation[];
-  followups?: string[];
-};
+type Msg = NavigatorMessage & { thinking?: ThinkingStep[]; citations?: Citation[]; followups?: string[] };
 
 const SUGGESTED = [
   "What are my Social Security survivor benefits?",
@@ -78,28 +73,67 @@ function buildReply(input: string, kb: { id: string; title: string; state_code: 
 
 function Navigator() {
   const { q } = Route.useSearch();
-  const kb = useStore((s) => s.kbArticles);
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const { data: kb = [] } = usePublishedKbArticles();
+  const { data: session } = useNavigatorSession(user?.id);
+  const saveSession = useNavigatorSessionMutations(user?.id);
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [stage, setStage] = useState<number>(-1);
   const endRef = useRef<HTMLDivElement>(null);
+  const initialSent = useRef(false);
 
-  useEffect(() => { if (q) send(q); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (session && !hydrated) {
+      setSessionId(session.id);
+      const stored = (session.messages as Msg[] | null) ?? [];
+      setMessages(stored);
+      setHydrated(true);
+    } else if (!session && !hydrated && user) {
+      setHydrated(true);
+    }
+  }, [session, hydrated, user]);
+
+  useEffect(() => {
+    if (hydrated && q && !initialSent.current) {
+      initialSent.current = true;
+      send(q);
+    }
+    /* eslint-disable-next-line */
+  }, [hydrated, q]);
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, stage]);
+
+  const persist = async (next: Msg[]) => {
+    if (!user) return;
+    const saved = await saveSession.mutateAsync({ sessionId, messages: next });
+    setSessionId(saved.id);
+  };
 
   const send = async (text: string) => {
     if (!text.trim() || streaming) return;
     const userMsg: Msg = { role: "user", content: text, ts: Date.now() };
-    setMessages((m) => [...m, userMsg]);
+    const afterUser = [...messages, userMsg];
+    setMessages(afterUser);
     setInput("");
     setStreaming(true);
 
-    const { text: replyText, cites, thinking, followups } = buildReply(text, kb);
+    const kbForReply = kb.map((a) => ({
+      id: a.id,
+      title: a.title,
+      state_code: a.state_code ?? "",
+      category: a.category ?? "",
+    }));
+    const { text: replyText, cites, thinking, followups } = buildReply(text, kbForReply);
 
-    // Stage thinking steps
     const placeholder: Msg = { role: "agent", content: "", ts: Date.now(), thinking: [], citations: [], followups: [] };
-    setMessages((m) => [...m, placeholder]);
+    setMessages([...afterUser, placeholder]);
 
     for (let i = 0; i < thinking.length; i++) {
       setStage(i);
@@ -111,7 +145,6 @@ function Navigator() {
       await new Promise((r) => setTimeout(r, 420 + Math.random() * 280));
     }
 
-    // Stream tokens
     const words = replyText.split(/(\s+)/);
     let acc = "";
     for (const w of words) {
@@ -124,13 +157,20 @@ function Navigator() {
       await new Promise((r) => setTimeout(r, 14 + Math.random() * 24));
     }
 
+    let finalMessages: Msg[] = [];
     setMessages((m) => {
       const copy = [...m];
       copy[copy.length - 1] = { ...copy[copy.length - 1], citations: cites, followups };
+      finalMessages = copy;
       return copy;
     });
     setStage(-1);
     setStreaming(false);
+    try {
+      await persist(finalMessages);
+    } catch {
+      /* session save is best-effort */
+    }
   };
 
   return (

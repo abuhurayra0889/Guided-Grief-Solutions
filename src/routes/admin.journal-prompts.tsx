@@ -1,13 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AdminShell } from "@/components/ggs/AdminShell";
-import { store, useStore } from "@/lib/ggs/mockStore";
+import { toast } from "sonner";
+import { useAllJournalPrompts, useJournalPromptMutations } from "@/lib/ggs/queries";
 
 export const Route = createFileRoute("/admin/journal-prompts")({ component: Prompts });
 
 function Prompts() {
-  const rows = useStore((s) => s.journalPrompts);
+  const { data: rows = [] } = useAllJournalPrompts();
+  const { create, toggle } = useJournalPromptMutations();
   const [text, setText] = useState("");
+
+  const add = async () => {
+    if (!text.trim()) return;
+    try {
+      await create.mutateAsync(text.trim());
+      setText("");
+      toast.success("Prompt added.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not add prompt.");
+    }
+  };
 
   return (
     <AdminShell>
@@ -16,8 +29,7 @@ function Prompts() {
 
       <div className="flex gap-2 mb-5 max-w-2xl">
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="New prompt…" className="flex-1 px-4 py-2.5 rounded-md border border-border bg-card" />
-        <button onClick={() => { if (text.trim()) { store.addJournalPrompt(text.trim()); setText(""); } }}
-          className="px-4 py-2.5 rounded-md bg-primary text-primary-foreground hover:bg-primary-dark">Add</button>
+        <button onClick={add} className="px-4 py-2.5 rounded-md bg-primary text-primary-foreground hover:bg-primary-dark">Add</button>
       </div>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">
@@ -33,7 +45,7 @@ function Prompts() {
                 <td className="p-3 capitalize">{r.source}</td>
                 <td className="p-3">{r.active ? "Yes" : "No"}</td>
                 <td className="p-3">
-                  <button onClick={() => store.toggleJournalPrompt(r.id)} className="text-primary hover:underline">
+                  <button onClick={() => toggle.mutate({ id: r.id, active: r.active })} className="text-primary hover:underline">
                     {r.active ? "Deactivate" : "Activate"}
                   </button>
                 </td>

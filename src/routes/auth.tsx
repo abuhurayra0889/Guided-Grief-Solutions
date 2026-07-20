@@ -1,22 +1,50 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { useAuth } from "@/lib/ggs/useAuth";
-import { ShieldCheck, User } from "lucide-react";
-import { DemoBadge } from "@/components/ggs/DemoBadge";
+import { useEffect, useState } from "react";
+import { useAuth, profileNeedsOnboarding } from "@/lib/ggs/useAuth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Enter Demo - GGS" }] }),
+  head: () => ({ meta: [{ title: "Sign in - GGS" }] }),
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { user, signInAs } = useAuth();
+  const { user, profile, loading, signIn, signUp } = useAuth();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (user) navigate({ to: "/dashboard" }); }, [user, navigate]);
+  useEffect(() => {
+    if (!loading && user) {
+      navigate({ to: profileNeedsOnboarding(profile) ? "/onboarding" : "/dashboard" });
+    }
+  }, [user, profile, loading, navigate]);
 
-  const enterAsUser = () => { signInAs("user"); navigate({ to: "/dashboard" }); };
-  const enterAsAdmin = () => { signInAs("admin"); navigate({ to: "/admin" }); };
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      if (mode === "signup") {
+        if (!fullName.trim()) {
+          toast.error("Please enter your name.");
+          return;
+        }
+        await signUp(email, password, fullName.trim());
+        toast.success("Account created. Complete your profile next.");
+        navigate({ to: "/onboarding" });
+      } else {
+        await signIn(email, password);
+        toast.success("Welcome back.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Authentication failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen grid place-items-center bg-secondary/40 p-6">
@@ -27,35 +55,58 @@ function AuthPage() {
             <path d="M4 28 L20 10 L32 22 L44 8 L60 28" />
           </svg>
         </Link>
-        <h1 className="font-display text-3xl text-center">Welcome to the GGS demo</h1>
+        <h1 className="font-display text-3xl text-center">{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
         <p className="text-muted-foreground text-center mt-3 text-sm leading-relaxed">
-          This is a click-through prototype. Choose a role below to explore the experience - no account required.
+          {mode === "signin" ? "Sign in to continue your journey." : "A private space for your next steps after loss."}
         </p>
 
-        <div className="mt-8 space-y-3">
-          <button onClick={enterAsUser}
-            className="w-full flex items-center gap-4 p-5 rounded-xl border border-border hover:border-primary/60 hover:bg-secondary/40 transition-colors text-left">
-            <div className="h-11 w-11 rounded-full bg-primary/10 grid place-items-center text-primary"><User className="h-5 w-5" /></div>
-            <div className="flex-1">
-              <p className="font-display text-lg leading-tight">Enter as Sarah</p>
-              <p className="text-xs text-muted-foreground">A widow in NJ, 47 days into her journey</p>
-            </div>
+        <form onSubmit={submit} className="mt-8 space-y-3">
+          {mode === "signup" && (
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Full name"
+              required
+              className="w-full px-4 py-3 rounded-md border border-border bg-background"
+            />
+          )}
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            required
+            className="w-full px-4 py-3 rounded-md border border-border bg-background"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            required
+            minLength={6}
+            className="w-full px-4 py-3 rounded-md border border-border bg-background"
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full px-5 py-3 rounded-md bg-primary text-primary-foreground hover:bg-primary-dark disabled:opacity-50"
+          >
+            {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
           </button>
-          <button onClick={enterAsAdmin}
-            className="w-full flex items-center gap-4 p-5 rounded-xl border border-border hover:border-primary/60 hover:bg-secondary/40 transition-colors text-left">
-            <div className="h-11 w-11 rounded-full bg-primary text-primary-foreground grid place-items-center"><ShieldCheck className="h-5 w-5" /></div>
-            <div className="flex-1">
-              <p className="font-display text-lg leading-tight">Enter as Admin</p>
-              <p className="text-xs text-muted-foreground">GGS Control Tower - operations dashboard</p>
-            </div>
-          </button>
-        </div>
+        </form>
 
-        <p className="mt-8 text-[11px] text-muted-foreground text-center">
-          Mock data only. Nothing is sent to a real database.
+        <p className="mt-6 text-sm text-center text-muted-foreground">
+          {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
+          <button
+            type="button"
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            className="text-primary hover:underline"
+          >
+            {mode === "signin" ? "Create an account" : "Sign in"}
+          </button>
         </p>
       </div>
-      <DemoBadge />
     </div>
   );
 }

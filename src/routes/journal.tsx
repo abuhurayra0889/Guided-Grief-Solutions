@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/ggs/AppShell";
 import { useAuth } from "@/lib/ggs/useAuth";
 import { toast } from "sonner";
-import { store, useStore } from "@/lib/ggs/mockStore";
+import { useActiveJournalPrompts, useJournalEntries, useJournalEntryMutations } from "@/lib/ggs/queries";
 import { Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/journal")({
@@ -25,8 +25,9 @@ const MOODS = ["😔", "😐", "🙂", "😊", "💪"];
 function Journal() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const entries = useStore((s) => s.journalEntries);
-  const prompts = useStore((s) => s.journalPrompts.filter((p) => p.active));
+  const { data: entries = [] } = useJournalEntries(user?.id);
+  const { data: prompts = [] } = useActiveJournalPrompts();
+  const saveEntry = useJournalEntryMutations(user?.id);
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<string>("🙂");
   const [open, setOpen] = useState<string | null>(null);
@@ -35,25 +36,32 @@ function Journal() {
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [user, loading, navigate]);
 
-  const prompt = useMemo(() => prompts.length ? prompts[new Date().getDay() % prompts.length].prompt_text : "Write whatever feels true today.", [prompts]);
+  const prompt = useMemo(
+    () => (prompts.length ? prompts[new Date().getDay() % prompts.length].prompt_text : "Write whatever feels true today."),
+    [prompts],
+  );
 
   const save = async () => {
     if (!content.trim()) return;
     const text = content;
-    store.addJournalEntry({ content: text, mood, prompt_used: prompt });
-    setContent("");
-    toast.success("Saved.");
-    setReflecting(true);
-    setReflection("");
-    await new Promise((r) => setTimeout(r, 700));
-    const full = reflect(text);
-    let acc = "";
-    for (const w of full.split(/(\s+)/)) {
-      acc += w;
-      setReflection(acc);
-      await new Promise((r) => setTimeout(r, 22));
+    try {
+      await saveEntry.mutateAsync({ content: text, mood, prompt_used: prompt });
+      setContent("");
+      toast.success("Saved.");
+      setReflecting(true);
+      setReflection("");
+      await new Promise((r) => setTimeout(r, 700));
+      const full = reflect(text);
+      let acc = "";
+      for (const w of full.split(/(\s+)/)) {
+        acc += w;
+        setReflection(acc);
+        await new Promise((r) => setTimeout(r, 22));
+      }
+      setReflecting(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save entry.");
     }
-    setReflecting(false);
   };
 
   return (
@@ -87,7 +95,7 @@ function Journal() {
                   className={`h-9 w-9 rounded-full text-lg grid place-items-center transition-all ${mood === m ? "bg-primary/10 ring-2 ring-primary" : "hover:bg-secondary"}`}>{m}</button>
               ))}
             </div>
-            <button onClick={save} disabled={!content.trim()}
+            <button onClick={save} disabled={!content.trim() || saveEntry.isPending}
               className="px-5 py-2.5 rounded-md bg-primary text-primary-foreground hover:bg-primary-dark disabled:opacity-50">Save entry</button>
           </div>
         </div>
@@ -99,19 +107,13 @@ function Journal() {
               {entries.map((e) => {
                 const isOpen = open === e.id;
                 return (
-                  <li key={e.id} className="bg-card border border-border rounded-xl p-5">
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <span>{new Date(e.created_at).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
-                      <span className="text-lg">{e.mood}</span>
-                    </div>
-                    <p className="mt-2 text-foreground leading-relaxed whitespace-pre-line">
-                      {isOpen ? e.content : e.content.slice(0, 100) + (e.content.length > 100 ? "…" : "")}
-                    </p>
-                    {e.content.length > 100 && (
-                      <button onClick={() => setOpen(isOpen ? null : e.id)} className="mt-2 text-sm text-primary hover:underline">
-                        {isOpen ? "Collapse" : "Read full entry"}
-                      </button>
-                    )}
+                  <li key={e.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                    <button onClick={() => setOpen(isOpen ? null : e.id)} className="w-full text-left p-4 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleDateString()} · {e.mood}</p>
+                        <p className="text-sm mt-1">{isOpen ? e.content : `${e.content?.slice(0, 120)}${(e.content?.length ?? 0) > 120 ? "…" : ""}`}</p>
+                      </div>
+                    </button>
                   </li>
                 );
               })}

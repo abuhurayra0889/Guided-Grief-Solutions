@@ -1,6 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminShell } from "@/components/ggs/AdminShell";
-import { useStore } from "@/lib/ggs/mockStore";
+import {
+  useAllKbArticles,
+  useEmailCaptures,
+  useJournalEntryCount,
+  useNavigatorSessions,
+  useProfiles,
+  useUrlMonitor,
+} from "@/lib/ggs/queries";
 
 export const Route = createFileRoute("/admin/")({
   component: Overview,
@@ -17,12 +24,15 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
 }
 
 function Overview() {
-  const users = useStore((s) => s.adminUsers);
-  const articles = useStore((s) => s.kbArticles);
-  const sessions = useStore((s) => s.navigatorSessions);
-  const journalCount = useStore((s) => s.journalEntries.length);
-  const broken = useStore((s) => s.urlMonitor.filter((m) => m.status === "broken").length);
-  const captures = useStore((s) => s.emailCaptures.length);
+  const { data: users = [] } = useProfiles();
+  const { data: articles = [] } = useAllKbArticles();
+  const { data: sessions = [] } = useNavigatorSessions();
+  const { data: journalCount = 0 } = useJournalEntryCount();
+  const { data: urlRows = [] } = useUrlMonitor();
+  const { data: captures = [] } = useEmailCaptures();
+
+  const broken = urlRows.filter((m) => m.status === "broken").length;
+  const highConfidence = urlRows.filter((m) => m.confidence === "high").length;
 
   return (
     <AdminShell>
@@ -33,14 +43,14 @@ function Overview() {
           <p className="text-muted-foreground mt-1">Operational snapshot across the GGS platform.</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Stat label="Total widows" value={users.length} hint={`${users.filter((u) => u.status === "active").length} active`} />
+          <Stat label="Total widows" value={users.length} />
           <Stat label="Articles published" value={articles.filter((a) => a.published).length} hint={`${articles.length - articles.filter((a) => a.published).length} drafts`} />
-          <Stat label="Navigator sessions" value={sessions.length} hint="last 7 days" />
-          <Stat label="Email captures" value={captures} hint="all sources" />
+          <Stat label="Navigator sessions" value={sessions.length} hint="all time" />
+          <Stat label="Email captures" value={captures.length} hint="all sources" />
           <Stat label="Journal entries" value={journalCount} />
-          <Stat label="Sources monitored" value={useStore((s) => s.urlMonitor.length)} />
+          <Stat label="Sources monitored" value={urlRows.length} />
           <Stat label="Sources broken" value={broken} hint={broken > 0 ? "needs review" : "all healthy"} />
-          <Stat label="Tier 1 sources" value={useStore((s) => s.urlMonitor.filter((m) => m.tier === 1).length)} />
+          <Stat label="High-confidence sources" value={highConfidence} />
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -58,7 +68,7 @@ function Overview() {
                   <tr key={u.id} className="border-t border-border">
                     <td className="py-2">{u.full_name}</td>
                     <td>{u.state_code}</td>
-                    <td>{new Date(u.loss_date).toLocaleDateString()}</td>
+                    <td>{u.loss_date ? new Date(u.loss_date).toLocaleDateString() : "-"}</td>
                     <td>{new Date(u.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
@@ -72,17 +82,20 @@ function Overview() {
             </div>
             <table className="w-full text-sm">
               <thead className="text-xs text-muted-foreground uppercase tracking-wider">
-                <tr><th className="text-left pb-2">User</th><th className="text-left">Topic</th><th className="text-left">Msgs</th><th className="text-left">Active</th></tr>
+                <tr><th className="text-left pb-2">User</th><th className="text-left">Messages</th><th className="text-left">Active</th></tr>
               </thead>
               <tbody>
-                {sessions.map((s) => (
-                  <tr key={s.id} className="border-t border-border">
-                    <td className="py-2">{s.user_name}</td>
-                    <td className="text-muted-foreground">{s.topic}</td>
-                    <td>{s.messages}</td>
-                    <td>{new Date(s.last_active).toLocaleDateString()}</td>
-                  </tr>
-                ))}
+                {sessions.slice(0, 6).map((s) => {
+                  const msgs = Array.isArray(s.messages) ? s.messages.length : 0;
+                  const user = users.find((u) => u.id === s.user_id);
+                  return (
+                    <tr key={s.id} className="border-t border-border">
+                      <td className="py-2">{user?.full_name || s.user_id?.slice(0, 8)}</td>
+                      <td>{msgs}</td>
+                      <td>{new Date(s.updated_at).toLocaleDateString()}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/ggs/AdminShell";
-import { useStore } from "@/lib/ggs/mockStore";
+import { useEmailCaptures } from "@/lib/ggs/queries";
 
 export const Route = createFileRoute("/admin/email-captures")({ component: Emails });
 
 function Emails() {
-  const rows = useStore((s) => s.emailCaptures);
+  const { data: rows = [] } = useEmailCaptures();
   const exportCsv = () => {
     const csv = ["email,source,created_at", ...rows.map((r) => `${r.email},${r.source},${r.created_at}`)].join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));

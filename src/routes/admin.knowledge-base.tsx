@@ -2,23 +2,28 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AdminShell } from "@/components/ggs/AdminShell";
 import { toast } from "sonner";
-import { store, useStore } from "@/lib/ggs/mockStore";
+import { useAllKbArticles, useKbArticleMutations } from "@/lib/ggs/queries";
 
 export const Route = createFileRoute("/admin/knowledge-base")({ component: KBAdmin });
 
 const CATS = ["Probate", "Benefits", "Financial", "Housing"];
 
 function KBAdmin() {
-  const rows = useStore((s) => s.kbArticles);
+  const { data: rows = [] } = useAllKbArticles();
+  const { create, togglePublished } = useKbArticleMutations();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", state_code: "NJ", category: "Probate", summary: "", body: "", attorney_reviewed: false });
 
-  const create = (publish: boolean) => {
+  const submit = async (publish: boolean) => {
     if (!form.title.trim()) return toast.error("Title is required.");
-    store.addKbArticle({ ...form, published: publish });
-    toast.success(publish ? "Published." : "Saved as draft.");
-    setOpen(false);
-    setForm({ title: "", state_code: "NJ", category: "Probate", summary: "", body: "", attorney_reviewed: false });
+    try {
+      await create.mutateAsync({ ...form, published: publish });
+      toast.success(publish ? "Published." : "Saved as draft.");
+      setOpen(false);
+      setForm({ title: "", state_code: "NJ", category: "Probate", summary: "", body: "", attorney_reviewed: false });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save article.");
+    }
   };
 
   return (
@@ -34,8 +39,9 @@ function KBAdmin() {
       <div className="bg-card border border-border rounded-xl overflow-hidden overflow-x-auto">
         <table className="w-full text-sm min-w-[800px]">
           <thead className="bg-secondary text-xs uppercase tracking-wider text-muted-foreground">
-            <tr>{["Title","State","Category","Reviewed","Updated","Status","Actions"].map((h) =>
-              <th key={h} className="text-left p-3">{h}</th>)}</tr>
+            <tr>{["Title", "State", "Category", "Reviewed", "Updated", "Status", "Actions"].map((h) =>
+              <th key={h} className="text-left p-3">{h}</th>)}
+            </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -47,7 +53,10 @@ function KBAdmin() {
                 <td className="p-3">{new Date(r.updated_at).toLocaleDateString()}</td>
                 <td className="p-3">{r.published ? <span className="text-primary">Published</span> : <span className="text-muted-foreground">Draft</span>}</td>
                 <td className="p-3">
-                  <button onClick={() => store.togglePublished(r.id)} className="text-primary hover:underline text-xs">
+                  <button
+                    onClick={() => togglePublished.mutate({ id: r.id, published: r.published })}
+                    className="text-primary hover:underline text-xs"
+                  >
                     {r.published ? "Unpublish" : "Publish"}
                   </button>
                 </td>
@@ -76,8 +85,8 @@ function KBAdmin() {
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setOpen(false)} className="px-4 py-2 text-muted-foreground">Cancel</button>
-              <button onClick={() => create(false)} className="px-4 py-2 rounded-md border border-border">Save draft</button>
-              <button onClick={() => create(true)} className="px-4 py-2 rounded-md bg-primary text-primary-foreground">Publish</button>
+              <button onClick={() => submit(false)} className="px-4 py-2 rounded-md border border-border">Save draft</button>
+              <button onClick={() => submit(true)} className="px-4 py-2 rounded-md bg-primary text-primary-foreground">Publish</button>
             </div>
           </div>
         </div>

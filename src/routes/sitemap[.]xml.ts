@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { seedKbArticles } from "@/lib/ggs/mock";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const BASE_URL = "https://embrace-compassion-appn.lovable.app";
+const BASE_URL = process.env.VITE_SITE_URL || "https://embrace-compassion-appn.lovable.app";
 
 interface SitemapEntry {
   path: string;
@@ -13,7 +13,7 @@ interface SitemapEntry {
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
-      GET: () => {
+      GET: async () => {
         const today = new Date().toISOString().slice(0, 10);
 
         const entries: SitemapEntry[] = [
@@ -32,8 +32,13 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/onboarding", changefreq: "monthly", priority: "0.6" },
         ];
 
-        for (const article of seedKbArticles) {
-          if (article.published) {
+        try {
+          const { data: articles } = await supabaseAdmin
+            .from("kb_articles")
+            .select("id, updated_at")
+            .eq("published", true);
+
+          for (const article of articles ?? []) {
             entries.push({
               path: `/knowledge-base/${article.id}`,
               changefreq: "monthly",
@@ -41,6 +46,8 @@ export const Route = createFileRoute("/sitemap.xml")({
               lastmod: new Date(article.updated_at).toISOString().slice(0, 10),
             });
           }
+        } catch {
+          /* sitemap still works without dynamic articles */
         }
 
         const urls = entries.map((e) =>

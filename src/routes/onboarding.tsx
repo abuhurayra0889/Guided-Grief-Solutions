@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/ggs/useAuth";
+import { useAuth, profileNeedsOnboarding } from "@/lib/ggs/useAuth";
 import { US_STATES } from "@/lib/ggs/states";
+import { useActionItemMutations } from "@/lib/ggs/queries";
 import { toast } from "sonner";
-import { store } from "@/lib/ggs/mockStore";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Welcome - GGS" }] }),
@@ -28,7 +28,8 @@ const STAGES = [
 
 function Onboarding() {
   const navigate = useNavigate();
-  const { user, profile, signInAs } = useAuth();
+  const { user, profile, loading, saveProfile } = useAuth();
+  const { cloneTemplates } = useActionItemMutations(user?.id);
   const [step, setStep] = useState(1);
   const [name, setName] = useState(profile?.full_name || "");
   const [email, setEmail] = useState(profile?.email || "");
@@ -36,19 +37,46 @@ function Onboarding() {
   const [stateCode, setStateCode] = useState(profile?.state_code || "NJ");
   const [needs, setNeeds] = useState<string[]>(profile?.urgent_needs || []);
   const [stage, setStage] = useState<string>(profile?.grief_stage || "");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (!user) signInAs("user"); }, [user, signInAs]);
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/auth" });
+    else if (!loading && user && profile && !profileNeedsOnboarding(profile)) navigate({ to: "/dashboard" });
+  }, [user, profile, loading, navigate]);
+
+  useEffect(() => {
+    if (profile) {
+      setName(profile.full_name || "");
+      setEmail(profile.email || "");
+      setLossDate(profile.loss_date || "");
+      setStateCode(profile.state_code || "NJ");
+      setNeeds(profile.urgent_needs || []);
+      setStage(profile.grief_stage || "");
+    }
+  }, [profile]);
 
   const monthsSince = lossDate ? Math.max(0, Math.floor((Date.now() - new Date(lossDate).getTime()) / (1000 * 60 * 60 * 24 * 30))) : null;
-  const toggleNeed = (v: string) => setNeeds((n) => n.includes(v) ? n.filter((x) => x !== v) : [...n, v]);
+  const toggleNeed = (v: string) => setNeeds((n) => (n.includes(v) ? n.filter((x) => x !== v) : [...n, v]));
 
-  const finish = () => {
-    store.updateProfile({
-      full_name: name, email, loss_date: lossDate, state_code: stateCode,
-      grief_stage: stage, urgent_needs: needs,
-    });
-    toast.success("Your space is ready.");
-    navigate({ to: "/dashboard" });
+  const finish = async () => {
+    setBusy(true);
+    try {
+      await saveProfile({
+        full_name: name,
+        email,
+        loss_date: lossDate,
+        state_code: stateCode,
+        grief_stage: stage,
+        urgent_needs: needs,
+      });
+      await cloneTemplates.mutateAsync({ urgentNeeds: needs, stateCode });
+      toast.success("Your space is ready.");
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save your profile.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -123,8 +151,10 @@ function Onboarding() {
             </div>
             <div className="flex justify-between pt-2">
               <button onClick={() => setStep(2)} className="px-4 py-2 text-muted-foreground">Back</button>
-              <button onClick={finish} disabled={!stage}
-                className="px-5 py-3 rounded-md bg-primary text-primary-foreground hover:bg-primary-dark disabled:opacity-50">Enter my space</button>
+              <button onClick={finish} disabled={!stage || busy}
+                className="px-5 py-3 rounded-md bg-primary text-primary-foreground hover:bg-primary-dark disabled:opacity-50">
+                {busy ? "Saving…" : "Enter my space"}
+              </button>
             </div>
           </div>
         )}

@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { SiteNav } from "@/components/ggs/SiteNav";
 import { SiteFooter } from "@/components/ggs/SiteFooter";
 import { DemoBadge } from "@/components/ggs/DemoBadge";
-import { store } from "@/lib/ggs/mockStore";
+import { useEmailCaptureMutation } from "@/lib/ggs/queries";
 import contactButterflyAsset from "@/assets/contact-butterfly.jpg.asset.json";
 
 export const Route = createFileRoute("/contact")({
@@ -83,18 +83,23 @@ const inputClass = "w-full rounded-full border border-primary/30 bg-background p
 
 function FormSection() {
   const [form, setForm] = useState({ first: "", last: "", email: "", phone: "", subject: "", message: "" });
+  const capture = useEmailCaptureMutation();
   const update = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.first.trim() || !form.email.trim() || !form.message.trim()) {
       toast.error("Please fill in your name, email, and message.");
       return;
     }
-    try { store.addEmailCapture(form.email, "contact-form"); } catch {}
-    toast.success("Thank you. Your message has been sent - Haley will be in touch soon.");
-    setForm({ first: "", last: "", email: "", phone: "", subject: "", message: "" });
+    try {
+      await capture.mutateAsync({ email: form.email, source: "contact-form" });
+      toast.success("Thank you. Your message has been sent - Haley will be in touch soon.");
+      setForm({ first: "", last: "", email: "", phone: "", subject: "", message: "" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send message.");
+    }
   };
 
   return (
