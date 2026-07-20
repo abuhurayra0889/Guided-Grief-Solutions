@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, BookOpen, MessageCircle, NotebookPen, LogOut, ShieldCheck } from "lucide-react";
+import { Home, BookOpen, MessageCircle, NotebookPen, LogOut, ShieldCheck, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import { useAuth } from "@/lib/ggs/useAuth";
 import { DemoBadge } from "@/components/ggs/DemoBadge";
@@ -7,7 +7,8 @@ import { DemoBadge } from "@/components/ggs/DemoBadge";
 const items = [
   { to: "/dashboard", label: "Home", icon: Home },
   { to: "/knowledge-base", label: "Knowledge Base", icon: BookOpen },
-  { to: "/navigator", label: "Navigator", icon: MessageCircle },
+  { to: "/navigator", label: "Navigator", icon: MessageCircle, exact: true },
+  { to: "/navigator/rag-agent", label: "RAG Agent", icon: Sparkles },
   { to: "/journal", label: "My Journal", icon: NotebookPen },
 ];
 
@@ -29,7 +30,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="flex flex-col gap-1 flex-1">
           {items.map((it) => {
             const Icon = it.icon;
-            const active = path === it.to || (it.to !== "/dashboard" && path.startsWith(it.to));
+            const active = it.exact
+              ? path === it.to
+              : path === it.to || (it.to !== "/dashboard" && path.startsWith(it.to));
             return (
               <Link key={it.to} to={it.to}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${

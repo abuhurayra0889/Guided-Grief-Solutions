@@ -28,10 +28,12 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KnowledgeBaseIndexRouteImport } from './routes/knowledge-base.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as NavigatorRagAgentRouteImport } from './routes/navigator.rag-agent'
 import { Route as KnowledgeBaseIdRouteImport } from './routes/knowledge-base.$id'
 import { Route as ArticlesHelpingChildrenDealWithGriefRouteImport } from './routes/articles.helping-children-deal-with-grief'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminUrlMonitorRouteImport } from './routes/admin.url-monitor'
+import { Route as AdminRagDocumentsRouteImport } from './routes/admin.rag-documents'
 import { Route as AdminMemoryRouteImport } from './routes/admin.memory'
 import { Route as AdminMcpServersRouteImport } from './routes/admin.mcp-servers'
 import { Route as AdminKnowledgeSourcesRouteImport } from './routes/admin.knowledge-sources'
@@ -161,6 +163,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const NavigatorRagAgentRoute = NavigatorRagAgentRouteImport.update({
+  id: '/rag-agent',
+  path: '/rag-agent',
+  getParentRoute: () => NavigatorRoute,
+} as any)
 const KnowledgeBaseIdRoute = KnowledgeBaseIdRouteImport.update({
   id: '/knowledge-base/$id',
   path: '/knowledge-base/$id',
@@ -180,6 +187,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
 const AdminUrlMonitorRoute = AdminUrlMonitorRouteImport.update({
   id: '/url-monitor',
   path: '/url-monitor',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRagDocumentsRoute = AdminRagDocumentsRouteImport.update({
+  id: '/rag-documents',
+  path: '/rag-documents',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminMemoryRoute = AdminMemoryRouteImport.update({
@@ -363,7 +375,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/faqs': typeof FaqsRoute
   '/journal': typeof JournalRoute
-  '/navigator': typeof NavigatorRoute
+  '/navigator': typeof NavigatorRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/resource-library': typeof ResourceLibraryRoute
   '/services': typeof ServicesRoute
@@ -378,10 +390,12 @@ export interface FileRoutesByFullPath {
   '/admin/knowledge-sources': typeof AdminKnowledgeSourcesRoute
   '/admin/mcp-servers': typeof AdminMcpServersRoute
   '/admin/memory': typeof AdminMemoryRoute
+  '/admin/rag-documents': typeof AdminRagDocumentsRoute
   '/admin/url-monitor': typeof AdminUrlMonitorRoute
   '/admin/users': typeof AdminUsersRoute
   '/articles/helping-children-deal-with-grief': typeof ArticlesHelpingChildrenDealWithGriefRoute
   '/knowledge-base/$id': typeof KnowledgeBaseIdRoute
+  '/navigator/rag-agent': typeof NavigatorRagAgentRoute
   '/admin/': typeof AdminIndexRoute
   '/knowledge-base/': typeof KnowledgeBaseIndexRoute
   '/admin/agents/$agentId': typeof AdminAgentsAgentIdRoute
@@ -420,7 +434,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/faqs': typeof FaqsRoute
   '/journal': typeof JournalRoute
-  '/navigator': typeof NavigatorRoute
+  '/navigator': typeof NavigatorRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/resource-library': typeof ResourceLibraryRoute
   '/services': typeof ServicesRoute
@@ -435,10 +449,12 @@ export interface FileRoutesByTo {
   '/admin/knowledge-sources': typeof AdminKnowledgeSourcesRoute
   '/admin/mcp-servers': typeof AdminMcpServersRoute
   '/admin/memory': typeof AdminMemoryRoute
+  '/admin/rag-documents': typeof AdminRagDocumentsRoute
   '/admin/url-monitor': typeof AdminUrlMonitorRoute
   '/admin/users': typeof AdminUsersRoute
   '/articles/helping-children-deal-with-grief': typeof ArticlesHelpingChildrenDealWithGriefRoute
   '/knowledge-base/$id': typeof KnowledgeBaseIdRoute
+  '/navigator/rag-agent': typeof NavigatorRagAgentRoute
   '/admin': typeof AdminIndexRoute
   '/knowledge-base': typeof KnowledgeBaseIndexRoute
   '/admin/agents/$agentId': typeof AdminAgentsAgentIdRoute
@@ -479,7 +495,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/faqs': typeof FaqsRoute
   '/journal': typeof JournalRoute
-  '/navigator': typeof NavigatorRoute
+  '/navigator': typeof NavigatorRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/resource-library': typeof ResourceLibraryRoute
   '/services': typeof ServicesRoute
@@ -494,10 +510,12 @@ export interface FileRoutesById {
   '/admin/knowledge-sources': typeof AdminKnowledgeSourcesRoute
   '/admin/mcp-servers': typeof AdminMcpServersRoute
   '/admin/memory': typeof AdminMemoryRoute
+  '/admin/rag-documents': typeof AdminRagDocumentsRoute
   '/admin/url-monitor': typeof AdminUrlMonitorRoute
   '/admin/users': typeof AdminUsersRoute
   '/articles/helping-children-deal-with-grief': typeof ArticlesHelpingChildrenDealWithGriefRoute
   '/knowledge-base/$id': typeof KnowledgeBaseIdRoute
+  '/navigator/rag-agent': typeof NavigatorRagAgentRoute
   '/admin/': typeof AdminIndexRoute
   '/knowledge-base/': typeof KnowledgeBaseIndexRoute
   '/admin/agents/$agentId': typeof AdminAgentsAgentIdRoute
@@ -554,10 +572,12 @@ export interface FileRouteTypes {
     | '/admin/knowledge-sources'
     | '/admin/mcp-servers'
     | '/admin/memory'
+    | '/admin/rag-documents'
     | '/admin/url-monitor'
     | '/admin/users'
     | '/articles/helping-children-deal-with-grief'
     | '/knowledge-base/$id'
+    | '/navigator/rag-agent'
     | '/admin/'
     | '/knowledge-base/'
     | '/admin/agents/$agentId'
@@ -611,10 +631,12 @@ export interface FileRouteTypes {
     | '/admin/knowledge-sources'
     | '/admin/mcp-servers'
     | '/admin/memory'
+    | '/admin/rag-documents'
     | '/admin/url-monitor'
     | '/admin/users'
     | '/articles/helping-children-deal-with-grief'
     | '/knowledge-base/$id'
+    | '/navigator/rag-agent'
     | '/admin'
     | '/knowledge-base'
     | '/admin/agents/$agentId'
@@ -669,10 +691,12 @@ export interface FileRouteTypes {
     | '/admin/knowledge-sources'
     | '/admin/mcp-servers'
     | '/admin/memory'
+    | '/admin/rag-documents'
     | '/admin/url-monitor'
     | '/admin/users'
     | '/articles/helping-children-deal-with-grief'
     | '/knowledge-base/$id'
+    | '/navigator/rag-agent'
     | '/admin/'
     | '/knowledge-base/'
     | '/admin/agents/$agentId'
@@ -713,7 +737,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   FaqsRoute: typeof FaqsRoute
   JournalRoute: typeof JournalRoute
-  NavigatorRoute: typeof NavigatorRoute
+  NavigatorRoute: typeof NavigatorRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   ResourceLibraryRoute: typeof ResourceLibraryRoute
   ServicesRoute: typeof ServicesRoute
@@ -859,6 +883,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/navigator/rag-agent': {
+      id: '/navigator/rag-agent'
+      path: '/rag-agent'
+      fullPath: '/navigator/rag-agent'
+      preLoaderRoute: typeof NavigatorRagAgentRouteImport
+      parentRoute: typeof NavigatorRoute
+    }
     '/knowledge-base/$id': {
       id: '/knowledge-base/$id'
       path: '/knowledge-base/$id'
@@ -885,6 +916,13 @@ declare module '@tanstack/react-router' {
       path: '/url-monitor'
       fullPath: '/admin/url-monitor'
       preLoaderRoute: typeof AdminUrlMonitorRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/rag-documents': {
+      id: '/admin/rag-documents'
+      path: '/rag-documents'
+      fullPath: '/admin/rag-documents'
+      preLoaderRoute: typeof AdminRagDocumentsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/memory': {
@@ -1131,6 +1169,7 @@ interface AdminRouteChildren {
   AdminKnowledgeSourcesRoute: typeof AdminKnowledgeSourcesRoute
   AdminMcpServersRoute: typeof AdminMcpServersRoute
   AdminMemoryRoute: typeof AdminMemoryRoute
+  AdminRagDocumentsRoute: typeof AdminRagDocumentsRoute
   AdminUrlMonitorRoute: typeof AdminUrlMonitorRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -1170,6 +1209,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminKnowledgeSourcesRoute: AdminKnowledgeSourcesRoute,
   AdminMcpServersRoute: AdminMcpServersRoute,
   AdminMemoryRoute: AdminMemoryRoute,
+  AdminRagDocumentsRoute: AdminRagDocumentsRoute,
   AdminUrlMonitorRoute: AdminUrlMonitorRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -1201,6 +1241,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface NavigatorRouteChildren {
+  NavigatorRagAgentRoute: typeof NavigatorRagAgentRoute
+}
+
+const NavigatorRouteChildren: NavigatorRouteChildren = {
+  NavigatorRagAgentRoute: NavigatorRagAgentRoute,
+}
+
+const NavigatorRouteWithChildren = NavigatorRoute._addFileChildren(
+  NavigatorRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -1213,7 +1265,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   FaqsRoute: FaqsRoute,
   JournalRoute: JournalRoute,
-  NavigatorRoute: NavigatorRoute,
+  NavigatorRoute: NavigatorRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   ResourceLibraryRoute: ResourceLibraryRoute,
   ServicesRoute: ServicesRoute,

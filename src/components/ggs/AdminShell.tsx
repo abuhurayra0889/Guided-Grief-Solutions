@@ -70,6 +70,7 @@ const groups: Group[] = [
     label: "Knowledge",
     items: [
       { to: "/admin/knowledge-base", label: "Knowledge base", icon: BookOpen },
+      { to: "/admin/rag-documents", label: "RAG documents", icon: FileText },
       { to: "/admin/knowledge-sources", label: "Sources", icon: Library },
       { to: "/admin/url-monitor", label: "URL monitor", icon: Globe },
     ],
