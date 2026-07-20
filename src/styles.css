@@ -1,0 +1,150 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@font-face {
+  font-family: 'Gotu';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/__l5e/assets-v1/b4a88e6d-a11a-4df1-8ab2-3ed6a9dd7744/Gotu-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/__l5e/assets-v1/76de52e4-7794-4e48-a368-f5a87e7c3eb1/Montserrat-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Lavishly Yours';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/__l5e/assets-v1/69ed0f0e-8848-4205-acc8-81e83eda516a/LavishlyYours-Regular.ttf') format('truetype');
+}
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --font-display: 'Gotu', Georgia, serif;
+  --font-serif: 'Gotu', Georgia, serif;
+  --font-signature: 'Lavishly Yours', cursive;
+}
+
+:root {
+  --radius: 1rem;
+  /* Warm linen background, sage accents — borrowed from the GGS reference */
+  --background: oklch(0.965 0.012 75);
+  --foreground: oklch(0.22 0.015 60);
+  --card: oklch(0.985 0.008 75);
+  --card-foreground: oklch(0.22 0.015 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.015 60);
+  --primary: oklch(0.52 0.045 145);
+  --primary-foreground: oklch(0.98 0.005 75);
+  --primary-dark: oklch(0.40 0.05 145);
+  --secondary: oklch(0.93 0.015 75);
+  --secondary-foreground: oklch(0.30 0.04 145);
+  --muted: oklch(0.94 0.012 75);
+  --muted-foreground: oklch(0.48 0.02 60);
+  --accent: oklch(0.78 0.05 145);
+  --accent-foreground: oklch(0.22 0.04 145);
+  --destructive: oklch(0.6 0.18 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.92 0.01 70);
+  --input: oklch(0.92 0.01 70);
+  --ring: oklch(0.52 0.045 145);
+  --surface: oklch(0.93 0.015 75);
+  --sidebar: oklch(0.97 0.01 75);
+  --sidebar-foreground: oklch(0.22 0.015 60);
+  --sidebar-accent: oklch(0.93 0.015 75);
+  --sidebar-accent-foreground: oklch(0.30 0.04 145);
+  --sidebar-border: oklch(0.92 0.01 70);
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background-color: var(--color-accent); color: var(--color-accent-foreground); }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+}
+
+.font-display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.02em; }
+.font-signature { font-family: var(--font-signature); font-weight: 400; }
+
+/* Typography scale — desktop defaults, mobile overrides below */
+.text-hero { font-size: 3.5625rem; line-height: 4rem; letter-spacing: -0.02em; font-family: var(--font-display); }
+.text-h1 { font-size: 3rem; line-height: 3.5rem; letter-spacing: -0.02em; font-family: var(--font-display); }
+.text-h2 { font-size: 2.5rem; line-height: 3.25rem; letter-spacing: -0.02em; font-family: var(--font-display); }
+.text-h3 { font-size: 2.0625rem; line-height: 2.5rem; font-family: var(--font-display); }
+.text-h4 { font-size: 1.875rem; line-height: 2.375rem; font-family: var(--font-display); }
+.text-h5 { font-size: 1.5rem; line-height: 2rem; font-family: var(--font-display); }
+.text-h6 { font-size: 1.25rem; line-height: 1.75rem; font-family: var(--font-display); }
+.text-body-lg { font-size: 1.25rem; line-height: 1.75rem; }
+.text-body { font-size: 1.125rem; line-height: 1.75rem; }
+.text-body-sm { font-size: 1rem; line-height: 1.5rem; }
+.text-caption { font-size: 0.8125rem; line-height: 1.125rem; }
+.text-eyebrow { font-size: 0.8125rem; line-height: 0.8125rem; letter-spacing: 0.154em; text-transform: uppercase; font-weight: 600; }
+.text-signature { font-family: var(--font-signature); font-size: 3.25rem; line-height: 3.5rem; }
+
+@media (max-width: 768px) {
+  .text-hero { font-size: 2.25rem; line-height: 2.75rem; letter-spacing: -0.01em; }
+  .text-h1 { font-size: 2rem; line-height: 2.5rem; letter-spacing: -0.01em; }
+  .text-h2 { font-size: 1.75rem; line-height: 2.25rem; letter-spacing: -0.01em; }
+  .text-h3 { font-size: 1.375rem; line-height: 2.125rem; }
+  .text-h4 { font-size: 1.375rem; line-height: 1.875rem; }
+  .text-h5 { font-size: 1.25rem; line-height: 1.75rem; }
+  .text-h6 { font-size: 1.125rem; line-height: 1.625rem; }
+  .text-eyebrow { font-size: 0.75rem; line-height: 0.75rem; }
+  .text-signature { font-size: 3rem; line-height: 3.25rem; }
+}
+
+@keyframes fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slide-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fade-in 500ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.slide-up { animation: slide-up 600ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.delay-1 { animation-delay: 60ms; }
+.delay-2 { animation-delay: 120ms; }
+.delay-3 { animation-delay: 180ms; }
+.delay-4 { animation-delay: 240ms; }

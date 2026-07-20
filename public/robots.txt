@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://embrace-compassion-appn.lovable.app/sitemap.xml
